@@ -76,11 +76,12 @@
                 <v-col cols="4">
                   <!-- <v-text-field v-model="userData.estado" label="Estado" required /> -->
                   <v-select
-                    id="municipio"
-                    v-model="userData.municipio"
-                    :items="municipio"
-                    label="Municipio"
+                    id="ciudad"
+                    v-model="userData.ciudad"
+                    :items="ciudad"
+                    label="Ciudad"
                     required
+                    @change="cargarMunicipios"
                   />
                   <!-- <option v-for="estado in estados" :key="estado" value="estado">
                     {{ estado }}
@@ -110,6 +111,32 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- E L I M I N A R  U S U A R I O  C U A D R O  O  D I A L O G O -->
+    <v-dialog v-model="confirmDialog" persistent max-width="400px">
+      <v-card color="#62717F">
+        <v-card-title class="text-h6">
+          Confirmación de Eliminación
+        </v-card-title>
+        <v-card-text>
+          <template v-if="selectedUser">
+            ¿Estás seguro que deseas eliminar el usuario? <strong>{{ selectedUser.nombre }}</strong>
+          </template>
+          <template v-else>
+            Cargando Datos del Usuario...
+          </template>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn text @click="closeConfirmDialog">
+            Cancelar
+          </v-btn>
+          <v-btn text color="red" :disabled="!selectedUser" @click="deleteUser">
+            Eliminar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -123,7 +150,6 @@ export default {
     return {
       // ! Para municipios conforme su estado
       estados: Object.keys(estadosMunicipios),
-      municipio: [],
       // * Para guardar todos los usuarios traidos de la DB
       usuarios: [],
       headers: [
@@ -134,7 +160,7 @@ export default {
         { text: 'Rol', value: 'rol' },
         { text: 'Acciones', value: 'acciones', soportable: false }
       ],
-      roles: ['admin', 'contabilidad', 'recursos', 'secretaria'],
+      roles: ['admin', 'coordinador', 'recursos', 'contabilidad'],
       valid: false,
       dialog: false,
       confirmDialog: false,
@@ -160,9 +186,9 @@ export default {
   methods: {
     cargarMunicipios () {
       if (this.userData && estadosMunicipios[this.userData.estado]) { // UserioSelecciono: Guanajuato && estadoMunicipio{Guanajuato}
-        this.municipio = estadosMunicipios[this.userData.estado] // * Almacena los municipios del Objeto con key = seleccionEstado
+        this.ciudad = estadosMunicipios[this.userData.estado] // * Almacena los municipios del Objeto con key = seleccionEstado
       } else {
-        this.municipio = []
+        this.ciudad = []
       }
       this.userData.municipio = ''
     },
@@ -201,12 +227,16 @@ export default {
           rol: 'contabilidad'
         }
       } else if (mode === 'delete' && user) {
-        this.userData = { ...user }
-        this.deleteUser()
+        this.selectedUser = user
+        this.confirmDialog = true
       }
     },
     closeDialog () {
       this.dialog = false
+    },
+    closeConfirmDialog () {
+      this.confirmDialog = false
+      this.selectedUser = null
     },
     saveUser () {
       // ! 1. Definir que funcion voy a usar:
@@ -254,9 +284,13 @@ export default {
     },
     async deleteUser () {
       try {
-        await this.$axios.delete(`/users/delete/${this.userData.id}`)
+        await this.$axios.delete(`/users/delete/${this.selectedUser.id}`)
+        this.$store.dispatch('alert/triggerAlert', {
+          message: 'usuario borrado con éxito',
+          type: 'success'
+        })
         this.fetchUsers()
-        this.closeDialog()
+        this.closeConfirmDialog()
       } catch (error) {
         const errorMessage = error.message || 'Error al borrar usuario'
         this.$store.dispatch('alert/triggerAlert', {
