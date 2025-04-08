@@ -43,7 +43,7 @@ export default {
           data: this.user
         })
         // console.log('Usuario Autenticado: ', this.$auth.user)
-        this.$router.push('/principal')
+        // this.$router.push('/principal')
       } catch (error) {
         const errorMessage = error.response?.data?.message || 'Ocurrio un error al tratar de ingresar'
         this.$store.dispatch('alert/triggerAlert', { // ? Payload:
